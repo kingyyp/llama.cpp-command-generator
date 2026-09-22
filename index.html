@@ -78,6 +78,19 @@
             font-weight: 500;
         }
 
+        .input-with-preset {
+            display: flex;
+            gap: 8px;
+        }
+
+        .input-with-preset input {
+            flex: 1;
+        }
+
+        .input-with-preset select {
+            width: 110px;
+        }
+
         input[type="text"], input[type="number"], select {
             background-color: var(--input-bg);
             border: 1px solid var(--border-color);
@@ -229,14 +242,47 @@
                 <label>llama-server 目錄 (cd路徑)</label>
                 <input type="text" id="workDir" value="C:\Users\king1\llama.cpp\" oninput="generateCommand()">
             </div>
+
+            <!-- Context Size 快捷選單 -->
             <div class="form-group">
                 <label>上下文視窗大小 (-c / --ctx-size)</label>
-                <input type="number" id="ctxSize" value="16384" step="1024" oninput="generateCommand()">
+                <div class="input-with-preset">
+                    <input type="number" id="ctxSize" value="16384" step="1024" oninput="generateCommand()">
+                    <select id="ctxPreset" onchange="applyPreset('ctxSize', this.value)">
+                        <option value="">快速選擇</option>
+                        <option value="4096">4K (4096)</option>
+                        <option value="8192">8K (8192)</option>
+                        <option value="16384" selected>16K (16384)</option>
+                        <option value="24576">24K (24576)</option>
+                        <option value="32768">32K (32768)</option>
+                        <option value="49152">48K (49152)</option>
+                        <option value="65536">64K (65536)</option>
+                        <option value="131072">128K (131072)</option>
+                        <option value="262144">256K (262144)</option>
+                    </select>
+                </div>
             </div>
+
+            <!-- Predict Size 快捷選單 -->
             <div class="form-group">
                 <label>單次最大輸出長度 (-n / --predict)</label>
-                <input type="number" id="predictSize" value="16384" step="1024" oninput="generateCommand()">
+                <div class="input-with-preset">
+                    <input type="number" id="predictSize" value="16384" step="1024" oninput="generateCommand()">
+                    <select id="predictPreset" onchange="applyPreset('predictSize', this.value)">
+                        <option value="">快速選擇</option>
+                        <option value="4096">4K (4096)</option>
+                        <option value="8192">8K (8192)</option>
+                        <option value="16384" selected>16K (16384)</option>
+                        <option value="24576">24K (24576)</option>
+                        <option value="32768">32K (32768)</option>
+                        <option value="49152">48K (49152)</option>
+                        <option value="65536">64K (65536)</option>
+                        <option value="131072">128K (131072)</option>
+                        <option value="262144">256K (262144)</option>
+                    </select>
+                </div>
             </div>
+
             <div class="form-group">
                 <label>HTTP 服務 Port (--port)</label>
                 <input type="number" id="port" value="8080" oninput="generateCommand()">
@@ -268,7 +314,7 @@
                 <label>KV Cache Key 量化 (--ctk)</label>
                 <select id="ctk" onchange="generateCommand()">
                     <option value="">預設 (f16 / 無量化)</option>
-                    <option value="q8_0">q8_0 (省 50% 快取記憶體)</option>
+                    <option value="q8_0" selected>q8_0 (省 50% 快取記憶體)</option>
                     <option value="q4_0">q4_0 (極省記憶體)</option>
                 </select>
             </div>
@@ -276,7 +322,7 @@
                 <label>KV Cache Value 量化 (--ctv)</label>
                 <select id="ctv" onchange="generateCommand()">
                     <option value="">預設 (f16 / 無量化)</option>
-                    <option value="q8_0">q8_0 (省 50% 快取記憶體)</option>
+                    <option value="q8_0" selected>q8_0 (省 50% 快取記憶體)</option>
                     <option value="q4_0">q4_0 (極省記憶體)</option>
                 </select>
             </div>
@@ -284,7 +330,7 @@
                 <label>Flash Attention (--flash-attn)</label>
                 <select id="flashAttn" onchange="generateCommand()">
                     <option value="off">關閉 (Default)</option>
-                    <option value="on">開啟 (加速並省顯存)</option>
+                    <option value="on" selected>開啟 (加速並省顯存)</option>
                 </select>
             </div>
         </div>
@@ -308,6 +354,13 @@
 </div>
 
 <script>
+    function applyPreset(inputId, value) {
+        if (value) {
+            document.getElementById(inputId).value = value;
+            generateCommand();
+        }
+    }
+
     function generateCommand() {
         const os = document.querySelector('input[name="os"]:checked').value;
         const workDir = document.getElementById('workDir').value.trim();
