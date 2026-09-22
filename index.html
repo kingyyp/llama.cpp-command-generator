@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>llama-server 指令生成器</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent-color: #38bdf8;
+            --text-color: #f8fafc;
+            --text-dim: #94a3b8;
+            --border-color: #334155;
+            --input-bg: #0f172a;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            max-width: 900px;
+            width: 100%;
+        }
+
+        h1 {
+            color: var(--accent-color);
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+        }
+
+        p.subtitle {
+            color: var(--text-dim);
+            margin-top: 0;
+            margin-bottom: 24px;
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-top: 0;
+            margin-bottom: 16px;
+            color: var(--accent-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 8px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        label {
+            font-size: 0.85rem;
+            color: var(--text-dim);
+            margin-bottom: 6px;
+            font-weight: 500;
+        }
+
+        input[type="text"], input[type="number"], select {
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        input[type="text"]:focus, input[type="number"]:focus, select:focus {
+            border-color: var(--accent-color);
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            height: 40px;
+        }
+
+        .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--text-color);
+            cursor: pointer;
+            margin-bottom: 0;
+        }
+
+        .output-box {
+            background-color: #000;
+            border: 1px solid var(--accent-color);
+            border-radius: 6px;
+            padding: 16px;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.95rem;
+            color: #4ade80;
+            word-break: break-all;
+            white-space: pre-wrap;
+            position: relative;
+            margin-bottom: 12px;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            background-color: var(--accent-color);
+            color: #0f172a;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button.secondary {
+            background-color: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+        }
+
+        button.secondary:hover {
+            background-color: var(--border-color);
+        }
+
+        .history-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .history-item {
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            padding: 10px 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            font-family: monospace;
+            font-size: 0.85rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-item:hover {
+            border-color: var(--accent-color);
+        }
+
+        .history-item-text {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            margin-right: 12px;
+        }
+
+        .badge {
+            font-size: 0.7rem;
+            padding: 2px 6px;
+            background-color: var(--border-color);
+            border-radius: 4px;
+            color: var(--text-dim);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>llama-server 指令生成器</h1>
+    <p class="subtitle">針對 Windows/Linux 平台，輕鬆建立與調試 llama.cpp 啟動參數</p>
+
+    <!-- 平台選擇與輸出 -->
+    <div class="card">
+        <div class="section-title">生成指令結果</div>
+        <div class="form-group" style="margin-bottom: 12px;">
+            <label>選擇目標系統平台 (OS Format)</label>
+            <div class="radio-group">
+                <label><input type="radio" name="os" value="win" checked onchange="generateCommand()"> Windows (PowerShell / CMD)</label>
+                <label><input type="radio" name="os" value="linux" onchange="generateCommand()"> Linux / macOS (Bash)</label>
+            </div>
+        </div>
+
+        <div class="output-box" id="commandOutput">.\llama-server.exe ...</div>
+
+        <div class="btn-group">
+            <button onclick="copyCommand()">複製指令 (Copy)</button>
+            <button class="secondary" onclick="saveFavorite()">加入常用指令 (Save Preset)</button>
+        </div>
+    </div>
+
+    <!-- 核心設定 -->
+    <div class="card">
+        <div class="section-title">基本與模型設定 (Basic Settings)</div>
+        <div class="grid">
+            <div class="form-group">
+                <label>模型路徑 (-m / --model)</label>
+                <input type="text" id="modelPath" value="C:\Users\king1\llama.cpp\model\gemma412b-long" oninput="generateCommand()">
+            </div>
+            <div class="form-group">
+                <label>llama-server 目錄 (cd路徑)</label>
+                <input type="text" id="workDir" value="C:\Users\king1\llama.cpp\" oninput="generateCommand()">
+            </div>
+            <div class="form-group">
+                <label>上下文視窗大小 (-c / --ctx-size)</label>
+                <input type="number" id="ctxSize" value="16384" step="1024" oninput="generateCommand()">
+            </div>
+            <div class="form-group">
+                <label>單次最大輸出長度 (-n / --predict)</label>
+                <input type="number" id="predictSize" value="16384" step="1024" oninput="generateCommand()">
+            </div>
+            <div class="form-group">
+                <label>HTTP 服務 Port (--port)</label>
+                <input type="number" id="port" value="8080" oninput="generateCommand()">
+            </div>
+            <div class="form-group">
+                <label>綁定 IP 位置 (--host)</label>
+                <input type="text" id="host" value="127.0.0.1" oninput="generateCommand()">
+            </div>
+        </div>
+    </div>
+
+    <!-- 進階與效能優化 -->
+    <div class="card">
+        <div class="section-title">效能與 GPU 優化 (Performance & GPU)</div>
+        <div class="grid">
+            <div class="form-group">
+                <label>GPU Offload 層數 (-ngl / --gpu-layers)</label>
+                <input type="number" id="gpuLayers" placeholder="例如 99 (全顯卡) 或留空" oninput="generateCommand()">
+            </div>
+            <div class="form-group">
+                <label>CPU 執行緒數量 (-t / --threads)</label>
+                <input type="number" id="threads" placeholder="例如 8 (預設自動)" oninput="generateCommand()">
+            </div>
+            <div class="form-group">
+                <label>併發 Task 插槽數 (-np / --parallel)</label>
+                <input type="number" id="parallel" placeholder="例如 1 或 4" oninput="generateCommand()">
+            </div>
+            <div class="form-group">
+                <label>KV Cache Key 量化 (--ctk)</label>
+                <select id="ctk" onchange="generateCommand()">
+                    <option value="">預設 (f16 / 無量化)</option>
+                    <option value="q8_0">q8_0 (省 50% 快取記憶體)</option>
+                    <option value="q4_0">q4_0 (極省記憶體)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>KV Cache Value 量化 (--ctv)</label>
+                <select id="ctv" onchange="generateCommand()">
+                    <option value="">預設 (f16 / 無量化)</option>
+                    <option value="q8_0">q8_0 (省 50% 快取記憶體)</option>
+                    <option value="q4_0">q4_0 (極省記憶體)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Flash Attention (--flash-attn)</label>
+                <select id="flashAttn" onchange="generateCommand()">
+                    <option value="off">關閉 (Default)</option>
+                    <option value="on">開啟 (加速並省顯存)</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- 歷史與常用指令 -->
+    <div class="card">
+        <div class="section-title">常用指令 (Favorite Presets)</div>
+        <ul class="history-list" id="favoriteList">
+            <li style="color: var(--text-dim); font-size: 0.85rem;">暫無常用指令，請點擊上方「加入常用指令」按鈕。</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <div class="section-title">上一次產生的指令 (Last Generated)</div>
+        <div class="history-item" onclick="loadLastCommand()" id="lastCommandBox">
+            <span class="history-item-text" id="lastCommandText">無歷史紀錄</span>
+            <span class="badge">點擊載入</span>
+        </div>
+    </div>
+</div>
+
+<script>
+    function generateCommand() {
+        const os = document.querySelector('input[name="os"]:checked').value;
+        const workDir = document.getElementById('workDir').value.trim();
+        const modelPath = document.getElementById('modelPath').value.trim();
+        const ctxSize = document.getElementById('ctxSize').value;
+        const predictSize = document.getElementById('predictSize').value;
+        const port = document.getElementById('port').value;
+        const host = document.getElementById('host').value.trim();
+        
+        const gpuLayers = document.getElementById('gpuLayers').value;
+        const threads = document.getElementById('threads').value;
+        const parallel = document.getElementById('parallel').value;
+        const ctk = document.getElementById('ctk').value;
+        const ctv = document.getElementById('ctv').value;
+        const flashAttn = document.getElementById('flashAttn').value;
+
+        let cmd = "";
+        let isWin = (os === 'win');
+
+        // 路徑轉換
+        let formattedModelPath = modelPath;
+        let formattedWorkDir = workDir;
+
+        if (!isWin) {
+            formattedModelPath = formattedModelPath.replace(/\\/g, '/');
+            formattedWorkDir = formattedWorkDir.replace(/\\/g, '/');
+        }
+
+        // CD 命令
+        if (formattedWorkDir) {
+            cmd += isWin ? `cd "${formattedWorkDir}"\n` : `cd "${formattedWorkDir}" && `;
+        }
+
+        // 執行檔
+        cmd += isWin ? `.\\llama-server.exe` : `./llama-server`;
+
+        // 核心參數
+        if (formattedModelPath) cmd += ` -m "${formattedModelPath}"`;
+        if (ctxSize) cmd += ` -c ${ctxSize}`;
+        if (predictSize) cmd += ` -n ${predictSize}`;
+        if (port) cmd += ` --port ${port}`;
+        if (host && host !== "127.0.0.1") cmd += ` --host ${host}`;
+
+        // 效能參數
+        if (gpuLayers) cmd += ` -ngl ${gpuLayers}`;
+        if (threads) cmd += ` -t ${threads}`;
+        if (parallel) cmd += ` -np ${parallel}`;
+        if (ctk) cmd += ` --ctk ${ctk}`;
+        if (ctv) cmd += ` --ctv ${ctv}`;
+        if (flashAttn === 'on') cmd += ` -fa`;
+
+        document.getElementById('commandOutput').innerText = cmd;
+
+        // 儲存到 LocalStorage 作為 Last Generated
+        localStorage.setItem('llama_last_cmd', cmd);
+        updateLastCommandDisplay();
+    }
+
+    function copyCommand() {
+        const cmd = document.getElementById('commandOutput').innerText;
+        navigator.clipboard.writeText(cmd).then(() => {
+            alert('指令已成功複製到剪貼簿！');
+        });
+    }
+
+    function saveFavorite() {
+        const cmd = document.getElementById('commandOutput').innerText;
+        let favorites = JSON.parse(localStorage.getItem('llama_fav_cmds') || '[]');
+        if (!favorites.includes(cmd)) {
+            favorites.unshift(cmd);
+            if (favorites.length > 5) favorites.pop(); // 保留最多5個
+            localStorage.setItem('llama_fav_cmds', JSON.stringify(favorites));
+            renderFavorites();
+            alert('已成功儲存至常用指令列表！');
+        }
+    }
+
+    function renderFavorites() {
+        let favorites = JSON.parse(localStorage.getItem('llama_fav_cmds') || '[]');
+        const favList = document.getElementById('favoriteList');
+        if (favorites.length === 0) {
+            favList.innerHTML = '<li style="color: var(--text-dim); font-size: 0.85rem;">暫無常用指令，請點擊上方「加入常用指令」按鈕。</li>';
+            return;
+        }
+        favList.innerHTML = '';
+        favorites.forEach((cmd, index) => {
+            const li = document.createElement('li');
+            li.className = 'history-item';
+            li.innerHTML = `
+                <span class="history-item-text">${cmd.replace(/\n/g, ' ')}</span>
+                <div>
+                    <span class="badge" onclick="applyCmd('${encodeURIComponent(cmd)}')">載入</span>
+                    <span class="badge" style="background:#ef4444; color:#fff;" onclick="deleteFav(${index})">刪除</span>
+                </div>
+            `;
+            favList.appendChild(li);
+        });
+    }
+
+    function deleteFav(index) {
+        let favorites = JSON.parse(localStorage.getItem('llama_fav_cmds') || '[]');
+        favorites.splice(index, 1);
+        localStorage.setItem('llama_fav_cmds', JSON.stringify(favorites));
+        renderFavorites();
+    }
+
+    function applyCmd(encodedCmd) {
+        const cmd = decodeURIComponent(encodedCmd);
+        document.getElementById('commandOutput').innerText = cmd;
+        navigator.clipboard.writeText(cmd);
+        alert('已載入並複製該常用指令！');
+    }
+
+    function updateLastCommandDisplay() {
+        const lastCmd = localStorage.getItem('llama_last_cmd');
+        if (lastCmd) {
+            document.getElementById('lastCommandText').innerText = lastCmd.replace(/\n/g, ' ');
+        }
+    }
+
+    function loadLastCommand() {
+        const lastCmd = localStorage.getItem('llama_last_cmd');
+        if (lastCmd) {
+            document.getElementById('commandOutput').innerText = lastCmd;
+            navigator.clipboard.writeText(lastCmd);
+            alert('已載入並複製上次產生的指令！');
+        }
+    }
+
+    // 初始化頁面
+    window.onload = function() {
+        generateCommand();
+        renderFavorites();
+        updateLastCommandDisplay();
+    };
+</script>
+
+</body>
+</html>
