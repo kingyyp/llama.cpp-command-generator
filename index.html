@@ -26,7 +26,7 @@
         }
 
         .container {
-            max-width: 900px;
+            max-width: 950px;
             width: 100%;
         }
 
@@ -60,10 +60,11 @@
             padding-bottom: 8px;
         }
 
+        /* 修正 Grid 佈局避免重疊 */
         .grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 18px;
         }
 
         .form-group {
@@ -78,17 +79,21 @@
             font-weight: 500;
         }
 
+        /* 修正組合輸入框元件 */
         .input-with-preset {
             display: flex;
-            gap: 8px;
+            gap: 6px;
+            width: 100%;
         }
 
         .input-with-preset input {
             flex: 1;
+            min-width: 0; /* 防止元件溢出 */
         }
 
         .input-with-preset select {
             width: 110px;
+            flex-shrink: 0;
         }
 
         input[type="text"], input[type="number"], select {
@@ -99,6 +104,7 @@
             border-radius: 6px;
             font-size: 0.9rem;
             outline: none;
+            box-sizing: border-box;
         }
 
         input[type="text"]:focus, input[type="number"]:focus, select:focus {
@@ -209,7 +215,7 @@
 
 <div class="container">
     <h1>llama-server 指令生成器</h1>
-    <p class="subtitle">針對 Windows/Linux 平台，輕鬆建立與調試 llama.cpp 啟動參數</p>
+    <p class="subtitle">輕鬆建立與調試 llama.cpp 啟動參數</p>
 
     <!-- 平台選擇與輸出 -->
     <div class="card">
@@ -247,14 +253,14 @@
             <div class="form-group">
                 <label>上下文視窗大小 (-c / --ctx-size)</label>
                 <div class="input-with-preset">
-                    <input type="number" id="ctxSize" value="16384" step="1024" oninput="generateCommand()">
+                    <input type="number" id="ctxSize" value="32768" step="1024" oninput="generateCommand()">
                     <select id="ctxPreset" onchange="applyPreset('ctxSize', this.value)">
                         <option value="">快速選擇</option>
                         <option value="4096">4K (4096)</option>
                         <option value="8192">8K (8192)</option>
-                        <option value="16384" selected>16K (16384)</option>
+                        <option value="16384">16K (16384)</option>
                         <option value="24576">24K (24576)</option>
-                        <option value="32768">32K (32768)</option>
+                        <option value="32768" selected>32K (32768)</option>
                         <option value="49152">48K (49152)</option>
                         <option value="65536">64K (65536)</option>
                         <option value="131072">128K (131072)</option>
@@ -267,20 +273,26 @@
             <div class="form-group">
                 <label>單次最大輸出長度 (-n / --predict)</label>
                 <div class="input-with-preset">
-                    <input type="number" id="predictSize" value="16384" step="1024" oninput="generateCommand()">
+                    <input type="number" id="predictSize" value="32768" step="1024" oninput="generateCommand()">
                     <select id="predictPreset" onchange="applyPreset('predictSize', this.value)">
                         <option value="">快速選擇</option>
                         <option value="4096">4K (4096)</option>
                         <option value="8192">8K (8192)</option>
-                        <option value="16384" selected>16K (16384)</option>
+                        <option value="16384">16K (16384)</option>
                         <option value="24576">24K (24576)</option>
-                        <option value="32768">32K (32768)</option>
+                        <option value="32768" selected>32K (32768)</option>
                         <option value="49152">48K (49152)</option>
                         <option value="65536">64K (65536)</option>
                         <option value="131072">128K (131072)</option>
                         <option value="262144">256K (262144)</option>
                     </select>
                 </div>
+            </div>
+
+            <!-- NP 設定 (併發數量) -->
+            <div class="form-group">
+                <label>併發 Task 插槽數 (-np / --parallel)</label>
+                <input type="number" id="parallel" value="1" min="1" placeholder="例如 1 (個人用最省顯存) 或 4" oninput="generateCommand()">
             </div>
 
             <div class="form-group">
@@ -307,11 +319,7 @@
                 <input type="number" id="threads" placeholder="例如 8 (預設自動)" oninput="generateCommand()">
             </div>
             <div class="form-group">
-                <label>併發 Task 插槽數 (-np / --parallel)</label>
-                <input type="number" id="parallel" placeholder="例如 1 或 4" oninput="generateCommand()">
-            </div>
-            <div class="form-group">
-                <label>KV Cache Key 量化 (--ctk)</label>
+                <label>KV Cache Key 量化 (--cache-type-k)</label>
                 <select id="ctk" onchange="generateCommand()">
                     <option value="">預設 (f16 / 無量化)</option>
                     <option value="q8_0" selected>q8_0 (省 50% 快取記憶體)</option>
@@ -319,7 +327,7 @@
                 </select>
             </div>
             <div class="form-group">
-                <label>KV Cache Value 量化 (--ctv)</label>
+                <label>KV Cache Value 量化 (--cache-type-v)</label>
                 <select id="ctv" onchange="generateCommand()">
                     <option value="">預設 (f16 / 無量化)</option>
                     <option value="q8_0" selected>q8_0 (省 50% 快取記憶體)</option>
@@ -327,10 +335,11 @@
                 </select>
             </div>
             <div class="form-group">
-                <label>Flash Attention (--flash-attn)</label>
+                <label>Flash Attention (-fa / --flash-attn)</label>
                 <select id="flashAttn" onchange="generateCommand()">
-                    <option value="off">關閉 (Default)</option>
-                    <option value="on" selected>開啟 (加速並省顯存)</option>
+                    <option value="on" selected>on (開啟 - 最省顯存與加速)</option>
+                    <option value="auto">auto (自動)</option>
+                    <option value="off">off (關閉)</option>
                 </select>
             </div>
         </div>
@@ -367,12 +376,12 @@
         const modelPath = document.getElementById('modelPath').value.trim();
         const ctxSize = document.getElementById('ctxSize').value;
         const predictSize = document.getElementById('predictSize').value;
+        const parallel = document.getElementById('parallel').value;
         const port = document.getElementById('port').value;
         const host = document.getElementById('host').value.trim();
         
         const gpuLayers = document.getElementById('gpuLayers').value;
         const threads = document.getElementById('threads').value;
-        const parallel = document.getElementById('parallel').value;
         const ctk = document.getElementById('ctk').value;
         const ctv = document.getElementById('ctv').value;
         const flashAttn = document.getElementById('flashAttn').value;
@@ -380,7 +389,6 @@
         let cmd = "";
         let isWin = (os === 'win');
 
-        // 路徑轉換
         let formattedModelPath = modelPath;
         let formattedWorkDir = workDir;
 
@@ -389,32 +397,31 @@
             formattedWorkDir = formattedWorkDir.replace(/\\/g, '/');
         }
 
-        // CD 命令
         if (formattedWorkDir) {
             cmd += isWin ? `cd "${formattedWorkDir}"\n` : `cd "${formattedWorkDir}" && `;
         }
 
-        // 執行檔
         cmd += isWin ? `.\\llama-server.exe` : `./llama-server`;
 
-        // 核心參數
         if (formattedModelPath) cmd += ` -m "${formattedModelPath}"`;
         if (ctxSize) cmd += ` -c ${ctxSize}`;
         if (predictSize) cmd += ` -n ${predictSize}`;
         if (port) cmd += ` --port ${port}`;
         if (host && host !== "127.0.0.1") cmd += ` --host ${host}`;
+        if (parallel) cmd += ` -np ${parallel}`;
 
-        // 效能參數
         if (gpuLayers) cmd += ` -ngl ${gpuLayers}`;
         if (threads) cmd += ` -t ${threads}`;
-        if (parallel) cmd += ` -np ${parallel}`;
-        if (ctk) cmd += ` --ctk ${ctk}`;
-        if (ctv) cmd += ` --ctv ${ctv}`;
-        if (flashAttn === 'on') cmd += ` -fa`;
+        
+        // 正確語法：--cache-type-k 與 --cache-type-v
+        if (ctk) cmd += ` --cache-type-k ${ctk}`;
+        if (ctv) cmd += ` --cache-type-v ${ctv}`;
+        
+        // 正確語法：-fa 必須加上值
+        if (flashAttn !== 'off') cmd += ` -fa ${flashAttn}`;
 
         document.getElementById('commandOutput').innerText = cmd;
 
-        // 儲存到 LocalStorage 作為 Last Generated
         localStorage.setItem('llama_last_cmd', cmd);
         updateLastCommandDisplay();
     }
@@ -431,7 +438,7 @@
         let favorites = JSON.parse(localStorage.getItem('llama_fav_cmds') || '[]');
         if (!favorites.includes(cmd)) {
             favorites.unshift(cmd);
-            if (favorites.length > 5) favorites.pop(); // 保留最多5個
+            if (favorites.length > 5) favorites.pop();
             localStorage.setItem('llama_fav_cmds', JSON.stringify(favorites));
             renderFavorites();
             alert('已成功儲存至常用指令列表！');
@@ -490,7 +497,6 @@
         }
     }
 
-    // 初始化頁面
     window.onload = function() {
         generateCommand();
         renderFavorites();
