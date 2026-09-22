@@ -60,7 +60,6 @@
             padding-bottom: 8px;
         }
 
-        /* 修正 Grid 佈局避免重疊 */
         .grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -79,7 +78,6 @@
             font-weight: 500;
         }
 
-        /* 修正組合輸入框元件 */
         .input-with-preset {
             display: flex;
             gap: 6px;
@@ -88,7 +86,7 @@
 
         .input-with-preset input {
             flex: 1;
-            min-width: 0; /* 防止元件溢出 */
+            min-width: 0;
         }
 
         .input-with-preset select {
@@ -253,18 +251,18 @@
             <div class="form-group">
                 <label>上下文視窗大小 (-c / --ctx-size)</label>
                 <div class="input-with-preset">
-                    <input type="number" id="ctxSize" value="32768" step="1024" oninput="generateCommand()">
+                    <input type="number" id="ctxSize" value="262144" step="1024" oninput="generateCommand()">
                     <select id="ctxPreset" onchange="applyPreset('ctxSize', this.value)">
                         <option value="">快速選擇</option>
                         <option value="4096">4K (4096)</option>
                         <option value="8192">8K (8192)</option>
                         <option value="16384">16K (16384)</option>
                         <option value="24576">24K (24576)</option>
-                        <option value="32768" selected>32K (32768)</option>
+                        <option value="32768">32K (32768)</option>
                         <option value="49152">48K (49152)</option>
                         <option value="65536">64K (65536)</option>
                         <option value="131072">128K (131072)</option>
-                        <option value="262144">256K (262144)</option>
+                        <option value="262144" selected>256K (262144)</option>
                     </select>
                 </div>
             </div>
@@ -310,6 +308,17 @@
     <div class="card">
         <div class="section-title">效能與 GPU 優化 (Performance & GPU)</div>
         <div class="grid">
+            <!-- 新增 Batch Size 設定 -->
+            <div class="form-group">
+                <label>Prompt 批次大小 (-b / --batch-size)</label>
+                <input type="number" id="batchSize" value="512" placeholder="預設 2048, 防閃退建議 512" oninput="generateCommand()">
+            </div>
+            <!-- 新增 Physical Micro-batch Size 設定 -->
+            <div class="form-group">
+                <label>實體微批次大小 (-ub / --ubatch-size)</label>
+                <input type="number" id="ubatchSize" value="512" placeholder="預設 512, 建議與 -b 相同" oninput="generateCommand()">
+            </div>
+
             <div class="form-group">
                 <label>GPU Offload 層數 (-ngl / --gpu-layers)</label>
                 <input type="number" id="gpuLayers" placeholder="例如 99 (全顯卡) 或留空" oninput="generateCommand()">
@@ -322,16 +331,16 @@
                 <label>KV Cache Key 量化 (--cache-type-k)</label>
                 <select id="ctk" onchange="generateCommand()">
                     <option value="">預設 (f16 / 無量化)</option>
-                    <option value="q8_0" selected>q8_0 (省 50% 快取記憶體)</option>
-                    <option value="q4_0">q4_0 (極省記憶體)</option>
+                    <option value="q8_0">q8_0 (省 50% 快取記憶體)</option>
+                    <option value="q4_0" selected>q4_0 (極省記憶體 - 衝 256K 必選)</option>
                 </select>
             </div>
             <div class="form-group">
                 <label>KV Cache Value 量化 (--cache-type-v)</label>
                 <select id="ctv" onchange="generateCommand()">
                     <option value="">預設 (f16 / 無量化)</option>
-                    <option value="q8_0" selected>q8_0 (省 50% 快取記憶體)</option>
-                    <option value="q4_0">q4_0 (極省記憶體)</option>
+                    <option value="q8_0">q8_0 (省 50% 快取記憶體)</option>
+                    <option value="q4_0" selected>q4_0 (極省記憶體 - 衝 256K 必選)</option>
                 </select>
             </div>
             <div class="form-group">
@@ -380,6 +389,8 @@
         const port = document.getElementById('port').value;
         const host = document.getElementById('host').value.trim();
         
+        const batchSize = document.getElementById('batchSize').value;
+        const ubatchSize = document.getElementById('ubatchSize').value;
         const gpuLayers = document.getElementById('gpuLayers').value;
         const threads = document.getElementById('threads').value;
         const ctk = document.getElementById('ctk').value;
@@ -410,14 +421,16 @@
         if (host && host !== "127.0.0.1") cmd += ` --host ${host}`;
         if (parallel) cmd += ` -np ${parallel}`;
 
+        // 防閃退批次設定：-b 與 -ub
+        if (batchSize) cmd += ` -b ${batchSize}`;
+        if (ubatchSize) cmd += ` -ub ${ubatchSize}`;
+
         if (gpuLayers) cmd += ` -ngl ${gpuLayers}`;
         if (threads) cmd += ` -t ${threads}`;
         
-        // 正確語法：--cache-type-k 與 --cache-type-v
         if (ctk) cmd += ` --cache-type-k ${ctk}`;
         if (ctv) cmd += ` --cache-type-v ${ctv}`;
         
-        // 正確語法：-fa 必須加上值
         if (flashAttn !== 'off') cmd += ` -fa ${flashAttn}`;
 
         document.getElementById('commandOutput').innerText = cmd;
